@@ -2,7 +2,7 @@ import tkinter as tk
 
 app = tk.Tk()
 app.title("File Encryptor")
-app.iconbitmap()
+app.iconbitmap("Assets/encrypt-icon.ico")
 
 greet_label = tk.Label(text="Welcome to the File Encryptor application.")
 greet_label.pack()
