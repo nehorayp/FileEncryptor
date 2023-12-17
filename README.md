@@ -53,5 +53,8 @@ Successful Decryption:
 ### Contributing
 Contributions are welcome! Feel free to open issues and pull requests.
 
+### Licence
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ### Notes
 This is my first project, so feel free to give me some feedback as a cyber security begineer and a beginner programmer :)
