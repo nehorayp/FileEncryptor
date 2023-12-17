@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, font, messagebox
+from tkinter import filedialog, font, messagebox, simpledialog
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding as sym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -10,6 +10,8 @@ app.title("File Encryptor")
 app.iconbitmap("Assets/encrypt-icon.ico")
 app.geometry("500x300")
 app.resizable(False, False)
+
+KEY_FILE_PATH = ""
 
 
 def show_decrypted_text(decrypted_text):
@@ -27,7 +29,7 @@ def create_aes_encryption():
     file_path = filedialog.askopenfilename(title="Select a file for AES encryption")
 
     if file_path:
-        aes_key = os.urandom(32)  # 256-bit key
+        aes_key = os.urandom(32)  # In a real-world scenario, you should securely manage and store the key
 
         with open(file_path, 'rb') as file:
             plaintext = file.read()
@@ -40,7 +42,7 @@ def create_aes_encryption():
         encryptor = cipher.encryptor()
         ciphertext = encryptor.update(padded_data) + encryptor.finalize()
 
-        # Save the encrypted file
+        # Ask the user where to save the encrypted file
         encrypted_file_path = filedialog.asksaveasfilename(title="Save the encrypted file",
                                                             defaultextension=".enc",
                                                             filetypes=[("Encrypted Files", "*.enc")])
@@ -48,7 +50,17 @@ def create_aes_encryption():
             with open(encrypted_file_path, 'wb') as file:
                 file.write(ciphertext)
 
-            messagebox.showinfo("Encryption Complete", "AES Encryption has been completed.")
+            # Ask the user where to save the key
+            global KEY_FILE_PATH
+            key_file_path = filedialog.asksaveasfilename(title="Save the encryption key",
+                                                          defaultextension=".txt",
+                                                          filetypes=[("Text Files", "*.txt")])
+            if key_file_path:
+                with open(key_file_path, 'w') as key_file:
+                    key_file.write(aes_key.hex())
+
+                messagebox.showinfo("Encryption Complete", "AES Encryption has been completed. Key saved to: {}".format(key_file_path))
+                KEY_FILE_PATH = key_file_path
 
 
 def decrypt_aes_file():
@@ -56,35 +68,40 @@ def decrypt_aes_file():
     file_path = filedialog.askopenfilename(title="Select a file for AES decryption")
 
     if file_path:
-        aes_key = os.urandom(32)  # In a real-world scenario, you should securely manage and store the key
+        user_key = simpledialog.askstring("Key Input", "Enter the encryption key:")
 
-        with open(file_path, 'rb') as file:
-            ciphertext = file.read()
+        if user_key is None:
+            # User canceled key entry
+            return
 
-        cipher = Cipher(algorithms.AES(aes_key), modes.ECB(), backend=default_backend())
+        aes_key = bytes.fromhex(user_key)
 
-        decryptor = cipher.decryptor()
-        decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()
-
-        # Try to remove PKCS7 padding
         try:
+            with open(file_path, 'rb') as file:
+                ciphertext = file.read()
+
+            cipher = Cipher(algorithms.AES(aes_key), modes.ECB(), backend=default_backend())
+
+            decryptor = cipher.decryptor()
+            decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()
+
+            # Remove PKCS7 padding
             unpadder = sym_padding.PKCS7(algorithms.AES.block_size).unpadder()
             plaintext = unpadder.update(decrypted_data) + unpadder.finalize()
-        except ValueError:
-            # If ValueError occurs, it might be due to no padding being present
-            plaintext = decrypted_data
 
-        # Decode the plaintext, handling decoding errors
-        try:
+            # Decode the plaintext, handling decoding errors
             decoded_text = plaintext.decode('utf-8', errors='replace')
-        except UnicodeDecodeError as e:
-            decoded_text = f"Decoding error: {e}"
 
-        # Display the decrypted text in a new window
-        show_decrypted_text(decoded_text)
+            # Display the decrypted text in a new window
+            show_decrypted_text(decoded_text)
 
-        # Show a message indicating that decryption is complete
-        messagebox.showinfo("Decryption Complete", "AES Decryption has been completed.")
+            messagebox.showinfo("Decryption Complete", "AES Decryption has been completed.")
+        except ValueError:
+            # If ValueError occurs, it might be due to incorrect padding
+            messagebox.showerror("Decryption Error", "AES Decryption failed. Incorrect padding or key.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
 
 def create_exit_button(main_window):
@@ -159,7 +176,6 @@ def create_initial_window():
         command=lambda: [create_main_window(), app.withdraw()]
     )
     continue_to_app.pack()
-
 
 
 create_initial_window()
