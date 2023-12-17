@@ -116,7 +116,6 @@ def decrypt_aes_file():
                 messagebox.showerror("Error", f"An error occurred: {e}")
 
 
-
 def create_exit_button(main_window):
     """
     Function to create an Exit button in the main window.
